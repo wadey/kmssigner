@@ -31,6 +31,8 @@ func main() {
 	serial := flag.Uint64("serial", 1, "Serial Number")
 	years := flag.Uint("years", 1, "Validity in years")
 	pathLen := flag.Int("max-path-len", -1, "Max path length constraint")
+	test := flag.Bool("test", false, "Test or dry-run mode (don't use KMS)")
+
 	flag.Parse()
 
 	awsSession := session.New(&aws.Config{
@@ -40,8 +42,7 @@ func main() {
 	kmsClient := kms.New(awsSession)
 
 	var signer crypto.Signer
-	if *arn == "" {
-		// For testing
+	if *test {
 		signer, err = rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			log.Fatalf("rsa.GenerateKey failed: %s", err)
