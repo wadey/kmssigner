@@ -9,6 +9,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"flag"
+	"fmt"
 	"log"
 	"math/big"
 	"os"
@@ -31,7 +32,9 @@ func main() {
 	serial := flag.Uint64("serial", 1, "Serial Number")
 	years := flag.Uint("years", 1, "Validity in years")
 	pathLen := flag.Int("max-path-len", -1, "Max path length constraint")
-	test := flag.Bool("test", false, "Test or dry-run mode (don't use KMS)")
+
+	test := flag.Bool("test", false, "Test mode (Generate random key)")
+	testKey := flag.String("test-key", "", "Test mode (Use .key file for CA)")
 
 	flag.Parse()
 
@@ -42,7 +45,13 @@ func main() {
 	kmsClient := kms.New(awsSession)
 
 	var signer crypto.Signer
-	if *test {
+	if *testKey != "" {
+		testKeyBytes, err := readPEMFile(*testKey)
+		if err != nil {
+			log.Fatal(err)
+		}
+		signer, err = x509.ParsePKCS1PrivateKey(testKeyBytes)
+	} else if *test {
 		signer, err = rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			log.Fatalf("rsa.GenerateKey failed: %s", err)
@@ -56,17 +65,12 @@ func main() {
 
 	var request *x509.CertificateRequest
 	if *csr != "" {
-		csrBytes, err := os.ReadFile(*csr)
+		csrBytes, err := readPEMFile(*csr)
 		if err != nil {
-			log.Fatalf("os.ReadFile(csr) failed: %s", err)
+			log.Fatal(err)
 		}
 
-		block, _ := pem.Decode(csrBytes)
-		if err != nil {
-			log.Fatalf("pem.Decode(csr) failed: %s", err)
-		}
-
-		request, err = x509.ParseCertificateRequest(block.Bytes)
+		request, err = x509.ParseCertificateRequest(csrBytes)
 		if err != nil {
 			log.Fatalf("x509.ParseCertificateRequest failed: %s", err)
 		}
@@ -115,9 +119,9 @@ func main() {
 	if *ca == "" {
 		issuer = cert
 	} else {
-		caBytes, err := os.ReadFile(*ca)
+		caBytes, err := readPEMFile(*ca)
 		if err != nil {
-			log.Fatalf("os.ReadFile(ca) failed: %s", err)
+			log.Fatal(err)
 		}
 
 		issuer, err = x509.ParseCertificate(caBytes)
@@ -137,7 +141,7 @@ func main() {
 		log.Fatalf("pem.Encode failed: %s", err)
 	}
 
-	if *test {
+	if *test && *testKey == "" {
 		pem.Encode(os.Stdout,
 			&pem.Block{
 				Type:  "RSA PRIVATE KEY",
@@ -145,4 +149,18 @@ func main() {
 			},
 		)
 	}
+}
+
+func readPEMFile(file string) ([]byte, error) {
+	raw, err := os.ReadFile(file)
+	if err != nil {
+		return nil, fmt.Errorf("os.ReadFile(%s) failed: %w", file, err)
+	}
+
+	block, _ := pem.Decode(raw)
+	if block == nil {
+		return nil, fmt.Errorf("pem.Decode(%s) failed", file)
+	}
+
+	return block.Bytes, nil
 }
