@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto"
+	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -63,12 +64,20 @@ func main() {
 			log.Fatalf("x509.ParseCertificateRequest failed: %s", err)
 		}
 	} else {
+		pub := signer.Public()
 		request = &x509.CertificateRequest{
 			Subject: pkix.Name{
 				CommonName: *cn,
 			},
-			PublicKey:          signer.Public(),
-			PublicKeyAlgorithm: x509.RSA, // TODO
+			PublicKey: pub,
+		}
+		switch pub.(type) {
+		case *rsa.PublicKey:
+			request.PublicKeyAlgorithm = x509.RSA
+		case *ecdsa.PublicKey:
+			request.PublicKeyAlgorithm = x509.ECDSA
+		default:
+			log.Fatalf("unsupported public key type: %T", pub)
 		}
 	}
 
@@ -91,7 +100,7 @@ func main() {
 
 		BasicConstraintsValid: true,
 	}
-	cert.NotAfter = cert.NotBefore.Add(time.Hour * 8760 * time.Duration(*years))
+	cert.NotAfter = cert.NotBefore.AddDate(int(*years), 0, 0)
 
 	var issuer *x509.Certificate
 	if *ca == "" {
