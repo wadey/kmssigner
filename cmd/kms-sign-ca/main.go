@@ -13,6 +13,7 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -35,6 +36,7 @@ func main() {
 	years := flag.Uint("years", 0, "Validity in years")
 	duration := flag.Duration("duration", 0, "Validity in 'duration' units")
 	pathLen := flag.Int("max-path-len", -1, "Max path length constraint")
+	permittedDNSDomains := flag.String("permitted-dns-domains", "", "DNS Name Constraints (comma separated)")
 
 	test := flag.Bool("test", false, "Test mode (Generate random key)")
 	testKey := flag.String("test-key", "", "Test mode (Use .key file for CA)")
@@ -140,6 +142,11 @@ func main() {
 		cert.NotAfter = cert.NotBefore.AddDate(int(*years), 0, 0)
 	} else {
 		log.Fatal("must set either -years or -duration")
+	}
+
+	if *permittedDNSDomains != "" {
+		cert.PermittedDNSDomains = strings.Split(*permittedDNSDomains, ",")
+		cert.PermittedDNSDomainsCritical = true
 	}
 
 	var issuer *x509.Certificate
