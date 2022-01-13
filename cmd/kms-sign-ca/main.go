@@ -149,7 +149,7 @@ func main() {
 		}
 	}
 
-	signed, err := x509.CreateCertificate(rand.Reader, cert, issuer, signer.Public(), signer)
+	signed, err := x509.CreateCertificate(rand.Reader, cert, issuer, cert.PublicKey, signer)
 	if err != nil {
 		log.Fatalf("x509.CreateCertificate failed: %s", err)
 	}
