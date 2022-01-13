@@ -37,6 +37,7 @@ func main() {
 	duration := flag.Duration("duration", 0, "Validity in 'duration' units")
 	pathLen := flag.Int("max-path-len", -1, "Max path length constraint")
 	permittedDNSDomains := flag.String("permitted-dns-domains", "", "DNS Name Constraints (comma separated)")
+	excludedDNSDomains := flag.String("excluded-dns-domains", "", "DNS Name Constraints (comma separated)")
 
 	test := flag.Bool("test", false, "Test mode (Generate random key)")
 	testKey := flag.String("test-key", "", "Test mode (Use .key file for CA)")
@@ -147,6 +148,9 @@ func main() {
 	if *permittedDNSDomains != "" {
 		cert.PermittedDNSDomains = strings.Split(*permittedDNSDomains, ",")
 		cert.PermittedDNSDomainsCritical = true
+	}
+	if *excludedDNSDomains != "" {
+		cert.ExcludedDNSDomains = strings.Split(*excludedDNSDomains, ",")
 	}
 
 	var issuer *x509.Certificate
