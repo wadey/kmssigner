@@ -61,7 +61,12 @@ func main() {
 			log.Fatalf("os.ReadFile(csr) failed: %s", err)
 		}
 
-		request, err = x509.ParseCertificateRequest(csrBytes)
+		block, _ := pem.Decode(csrBytes)
+		if err != nil {
+			log.Fatalf("pem.Decode(csr) failed: %s", err)
+		}
+
+		request, err = x509.ParseCertificateRequest(block.Bytes)
 		if err != nil {
 			log.Fatalf("x509.ParseCertificateRequest failed: %s", err)
 		}
