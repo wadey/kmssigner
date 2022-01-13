@@ -32,7 +32,8 @@ func main() {
 	cn := flag.String("cn", "", "Subject CN (if csr not set)")
 	ca := flag.String("ca", "", "CA Certificate (if not set, certificate will be self-signed)")
 	serial := flag.Uint64("serial", 0, "Serial Number")
-	years := flag.Uint("years", 1, "Validity in years")
+	years := flag.Uint("years", 0, "Validity in years")
+	duration := flag.Duration("duration", 0, "Validity in 'duration' units")
 	pathLen := flag.Int("max-path-len", -1, "Max path length constraint")
 
 	test := flag.Bool("test", false, "Test mode (Generate random key)")
@@ -132,7 +133,14 @@ func main() {
 		MaxPathLen:            *pathLen,
 		MaxPathLenZero:        *pathLen == 0,
 	}
-	cert.NotAfter = cert.NotBefore.AddDate(int(*years), 0, 0)
+
+	if *duration != 0 {
+		cert.NotAfter = cert.NotBefore.Add(*duration)
+	} else if *years != 0 {
+		cert.NotAfter = cert.NotBefore.AddDate(int(*years), 0, 0)
+	} else {
+		log.Fatal("must set either -years or -duration")
+	}
 
 	var issuer *x509.Certificate
 	if *ca == "" {
