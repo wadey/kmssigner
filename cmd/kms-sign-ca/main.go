@@ -27,7 +27,8 @@ func main() {
 	csr := flag.String("csr", "", "Certificate Request file")
 	cn := flag.String("cn", "", "Subject CN (if csr not set)")
 	ca := flag.String("ca", "", "CA Certificate (if not set, certificate will be self-signed)")
-	years := flag.Int("years", 1, "Validity in years")
+	serial := flag.Uint64("serial", 1, "Serial Number")
+	years := flag.Uint("years", 1, "Validity in years")
 	flag.Parse()
 
 	awsSession := session.New(&aws.Config{
@@ -72,7 +73,7 @@ func main() {
 	}
 
 	cert := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
+		SerialNumber: big.NewInt(int64(*serial)),
 		NotBefore:    time.Now(),
 		IsCA:         true,
 		KeyUsage:     x509.KeyUsageCRLSign | x509.KeyUsageCertSign,
@@ -105,6 +106,8 @@ func main() {
 		if err != nil {
 			log.Fatalf("x509.ParseCertificate(ca) failed: %s", err)
 		}
+
+		cert.MaxPathLenZero = true
 	}
 
 	signed, err := x509.CreateCertificate(rand.Reader, cert, issuer, signer.Public(), signer)
