@@ -30,6 +30,7 @@ func main() {
 	ca := flag.String("ca", "", "CA Certificate (if not set, certificate will be self-signed)")
 	serial := flag.Uint64("serial", 1, "Serial Number")
 	years := flag.Uint("years", 1, "Validity in years")
+	pathLen := flag.Int("max-path-len", -1, "Max path length constraint")
 	flag.Parse()
 
 	awsSession := session.New(&aws.Config{
@@ -99,6 +100,8 @@ func main() {
 		ExtraExtensions: request.ExtraExtensions,
 
 		BasicConstraintsValid: true,
+		MaxPathLen:            *pathLen,
+		MaxPathLenZero:        *pathLen == 0,
 	}
 	cert.NotAfter = cert.NotBefore.AddDate(int(*years), 0, 0)
 
@@ -115,8 +118,6 @@ func main() {
 		if err != nil {
 			log.Fatalf("x509.ParseCertificate(ca) failed: %s", err)
 		}
-
-		cert.MaxPathLenZero = true
 	}
 
 	signed, err := x509.CreateCertificate(rand.Reader, cert, issuer, signer.Public(), signer)
