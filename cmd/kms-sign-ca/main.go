@@ -136,4 +136,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("pem.Encode failed: %s", err)
 	}
+
+	if *test {
+		pem.Encode(os.Stdout,
+			&pem.Block{
+				Type:  "RSA PRIVATE KEY",
+				Bytes: x509.MarshalPKCS1PrivateKey(signer.(*rsa.PrivateKey)),
+			},
+		)
+	}
 }
