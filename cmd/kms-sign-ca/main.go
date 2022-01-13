@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/psanford/kmssigner"
@@ -24,6 +25,7 @@ import (
 func main() {
 	var err error
 
+	assumeRole := flag.String("assume-role", "", "role ARN to assume")
 	region := flag.String("region", "", "region to use")
 	arn := flag.String("arn", "", "KMS arn")
 	csr := flag.String("csr", "", "Certificate Request file")
@@ -42,7 +44,13 @@ func main() {
 		Region: region,
 	})
 
-	kmsClient := kms.New(awsSession)
+	var kmsClient *kms.KMS
+	if *assumeRole != "" {
+		creds := stscreds.NewCredentials(awsSession, *assumeRole)
+		kmsClient = kms.New(awsSession, &aws.Config{Credentials: creds})
+	} else {
+		kmsClient = kms.New(awsSession)
+	}
 
 	var signer crypto.Signer
 	if *testKey != "" {
