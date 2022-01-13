@@ -31,7 +31,7 @@ func main() {
 	csr := flag.String("csr", "", "Certificate Request file")
 	cn := flag.String("cn", "", "Subject CN (if csr not set)")
 	ca := flag.String("ca", "", "CA Certificate (if not set, certificate will be self-signed)")
-	serial := flag.Uint64("serial", 1, "Serial Number")
+	serial := flag.Uint64("serial", 0, "Serial Number")
 	years := flag.Uint("years", 1, "Validity in years")
 	pathLen := flag.Int("max-path-len", -1, "Max path length constraint")
 
@@ -100,8 +100,19 @@ func main() {
 		}
 	}
 
+	var bigSerial *big.Int
+	if *serial != 0 {
+		bigSerial = big.NewInt(int64(*serial))
+	} else {
+		serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+		bigSerial, err = rand.Int(rand.Reader, serialNumberLimit)
+		if err != nil {
+			log.Fatalf("rand.Int failed: %s", err)
+		}
+	}
+
 	cert := &x509.Certificate{
-		SerialNumber: big.NewInt(int64(*serial)),
+		SerialNumber: bigSerial,
 		NotBefore:    time.Now(),
 		IsCA:         true,
 		KeyUsage:     x509.KeyUsageCRLSign | x509.KeyUsageCertSign,
