@@ -14,12 +14,19 @@ import (
 )
 
 type signer struct {
-	kms    *kms.Client
+	kms    KMS
 	keyARN string
 	pubKey crypto.PublicKey
 }
 
-func New(kapi *kms.Client, keyARN string) (crypto.Signer, error) {
+// KMS is an interface with only the methods we are care about from *kms.Client
+// This allows the caller to give us a mock, etc.
+type KMS interface {
+	GetPublicKey(ctx context.Context, params *kms.GetPublicKeyInput, optFns ...func(*kms.Options)) (*kms.GetPublicKeyOutput, error)
+	Sign(ctx context.Context, params *kms.SignInput, optFns ...func(*kms.Options)) (*kms.SignOutput, error)
+}
+
+func New(kapi KMS, keyARN string) (crypto.Signer, error) {
 	kout, err := kapi.GetPublicKey(context.TODO(), &kms.GetPublicKeyInput{
 		KeyId: &keyARN,
 	})
