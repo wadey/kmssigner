@@ -1,6 +1,7 @@
 package kmssigner
 
 import (
+	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rand"
@@ -12,9 +13,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
 
 func TestKmsSignerRSA(t *testing.T) {
@@ -29,11 +29,15 @@ func TestKmsSignerRSA(t *testing.T) {
 		t.Skip("KMS_TEST_KEY_ID_RSA_ARN not set, skipping")
 		return
 	}
-	awsSession := session.New(&aws.Config{
-		Region: &region,
-	})
 
-	kmsClient := kms.New(awsSession)
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(region),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	kmsClient := kms.NewFromConfig(cfg)
 
 	signer, err := New(kmsClient, rsaKeyARN)
 	if err != nil {
@@ -82,11 +86,15 @@ func TestKmsSignerP256(t *testing.T) {
 		t.Skip("KMS_TEST_KEY_ID_P256_ARN not set, skipping")
 		return
 	}
-	awsSession := session.New(&aws.Config{
-		Region: &region,
-	})
 
-	kmsClient := kms.New(awsSession)
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(region),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	kmsClient := kms.NewFromConfig(cfg)
 
 	signer, err := New(kmsClient, p256KeyARN)
 	if err != nil {

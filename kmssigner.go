@@ -1,6 +1,7 @@
 package kmssigner
 
 import (
+	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
@@ -8,19 +9,18 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/aws/aws-sdk-go/service/kms/kmsiface"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 )
 
 type signer struct {
-	kms    kmsiface.KMSAPI
+	kms    *kms.Client
 	keyARN string
 	pubKey crypto.PublicKey
 }
 
-func New(kapi kmsiface.KMSAPI, keyARN string) (crypto.Signer, error) {
-	kout, err := kapi.GetPublicKey(&kms.GetPublicKeyInput{
+func New(kapi *kms.Client, keyARN string) (crypto.Signer, error) {
+	kout, err := kapi.GetPublicKey(context.TODO(), &kms.GetPublicKeyInput{
 		KeyId: &keyARN,
 	})
 	if err != nil {
@@ -66,10 +66,10 @@ func (s *signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (si
 		modeSuffix = "SHA_512"
 	}
 
-	output, err := s.kms.Sign(&kms.SignInput{
+	output, err := s.kms.Sign(context.TODO(), &kms.SignInput{
 		KeyId:            &s.keyARN,
-		SigningAlgorithm: aws.String(modePrefix + modeSuffix),
-		MessageType:      aws.String(kms.MessageTypeDigest),
+		SigningAlgorithm: types.SigningAlgorithmSpec(modePrefix + modeSuffix),
+		MessageType:      types.MessageTypeDigest,
 		Message:          digest,
 	})
 	if err != nil {
