@@ -1,4 +1,4 @@
-module github.com/psanford/kmssigner
+module github.com/wadey/kmssigner
 
 go 1.22
 
