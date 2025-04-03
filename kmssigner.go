@@ -85,3 +85,31 @@ func (s *signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (si
 
 	return output.Signature, nil
 }
+
+// GetSigner returns a function which signs the given bytes using
+// the given kms.Client and the key at the given arn and returns the signature.
+// If verify is true, then the signature is verified using the public key.
+func GetSigner(client *kms.Client, arn string, verify bool) (func([]byte) ([]byte, error), error) {
+	const hashFunc = crypto.SHA256
+	cs, err := New(client, arn)
+	if err != nil {
+		return nil, err
+	}
+	return func(tbs []byte) ([]byte, error) {
+		h := hashFunc.New()
+		h.Write(tbs)
+		digest := h.Sum(nil)
+
+		signature, err := cs.Sign(nil, digest, hashFunc)
+		if err != nil {
+			return nil, err
+		}
+
+		// Check the signature to ensure the crypto.Signer behaved correctly.
+		if verify && !ecdsa.VerifyASN1(cs.Public().(*ecdsa.PublicKey), digest, signature) {
+			return nil, fmt.Errorf("signature returned by signer is invalid")
+		}
+
+		return signature, err
+	}, nil
+}
