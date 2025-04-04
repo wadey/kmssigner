@@ -95,6 +95,10 @@ func GetSigner(client *kms.Client, arn string, verify bool) (func([]byte) ([]byt
 	if err != nil {
 		return nil, err
 	}
+	pubkey, ok := cs.Public().(*ecdsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("expected type *ecdsa.PublicKey but got %T", cs.Public())
+	}
 	return func(tbs []byte) ([]byte, error) {
 		h := hashFunc.New()
 		h.Write(tbs)
@@ -106,7 +110,7 @@ func GetSigner(client *kms.Client, arn string, verify bool) (func([]byte) ([]byt
 		}
 
 		// Check the signature to ensure the crypto.Signer behaved correctly.
-		if verify && !ecdsa.VerifyASN1(cs.Public().(*ecdsa.PublicKey), digest, signature) {
+		if verify && !ecdsa.VerifyASN1(pubkey, digest, signature) {
 			return nil, fmt.Errorf("signature returned by signer is invalid")
 		}
 
